@@ -49,9 +49,31 @@ footer_font = pygame.font.Font('freesansbold.ttf', 12)
 player_sprites = pygame.sprite.Group()
 
 
-class Player(pygame.sprite.Sprite):
-	def __init__(self, starting_pos):
+class WorldPhysics:
+	def __init__(self, behaviour_image):
+		self.image = behaviour_image
+
+	def region_contains_black_pixel(self, rel_rect):
+		for x_off in range(rel_rect.width):
+			for y_off in range(rel_rect.height):
+				color = self.image.get_at((rel_rect.x + x_off, rel_rect.y + y_off))
+				if color[0] == 0 and color[1] == 0 and color[2] == 0:
+					return True
+		return False
+
+	def collides(self, rect):
+		"""Checks for collisions between the given sprite and the fixed scene."""
+		rel_rect = rect.move(-left_border, -top_border)
+		return self.region_contains_black_pixel(rel_rect)
+
+physics = WorldPhysics(behaviour_image)
+
+
+class PlayerSprite(pygame.sprite.Sprite):
+	def __init__(self, starting_pos, physics):
 		super().__init__()
+
+		self.physics = physics
 
 		width = 32
 		height = 32
@@ -68,7 +90,12 @@ class Player(pygame.sprite.Sprite):
 		self.rect.y = starting_pos[1] - (height/2) + top_border
 
 	def update(self):
-		self.rect.y = self.rect.y + 1
+		possible_new_rect = self.rect.move(0, 1)
+		if self.physics.collides(possible_new_rect):
+			# don't update
+			pass
+		else:
+			self.rect = possible_new_rect
 
 # The loop will carry on until the user exit the game (e.g. clicks the close button).
 carryOn = True
@@ -91,7 +118,7 @@ while carryOn:
               carryOn = False # Flag that we are done so we exit this loop
         elif event.type == pygame.MOUSEBUTTONDOWN:
         	if mouse_in_level:
-        		new_player_sprite = Player(mouse_pos_rel)
+        		new_player_sprite = PlayerSprite(mouse_pos_rel, physics)
         		player_sprites.add(new_player_sprite)
  
     # --- Game logic should go here
