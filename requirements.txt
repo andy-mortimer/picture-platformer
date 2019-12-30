@@ -1,0 +1,3 @@
+# need the pygame 2 prerelease (which uses SDL2) to work on the Mac???
+# for releases see https://github.com/pygame/pygame/releases
+pygame==2.0.0.dev6
