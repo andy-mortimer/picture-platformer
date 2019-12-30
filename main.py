@@ -20,6 +20,9 @@ FALL_SPEED = 4
 JUMP_SPEED = 4
 JUMP_HEIGHT = 80
 
+COLOR_WALL = (0, 0, 0)
+COLOR_KILL = (255, 0, 0)
+
 # load the level image into a surface
 # TODO there should be two: one for the display, one for the physics
 level_image_name = args.level
@@ -34,7 +37,7 @@ def scale_down_by(surface, factor):
 MAX_WINDOW_WIDTH=1200
 MAX_WINDOW_HEIGHT=768
 if behaviour_image.get_width() + left_border + right_border > MAX_WINDOW_WIDTH \
-        or behaviour_image.get_height + top_border + bottom_border > MAX_WINDOW_HEIGHT:
+        or behaviour_image.get_height() + top_border + bottom_border > MAX_WINDOW_HEIGHT:
     # scale by an integer (so no sampling oddities) to bring it under the max size
     x_scale = math.ceil(behaviour_image.get_width() / (MAX_WINDOW_WIDTH - left_border - right_border))
     y_scale = math.ceil(behaviour_image.get_height() / (MAX_WINDOW_HEIGHT - top_border - bottom_border))
@@ -65,23 +68,38 @@ class WorldPhysics:
     def __init__(self, behaviour_image):
         self.image = behaviour_image
 
-    def region_contains_black_pixel(self, rel_rect):
+    def _check_for_colors_in_region(self, rel_rect, colors):
+        """checks the region for a pixel of the specified colour, and returns the first
+        colour found, or None if none of them are found"""
+        seen_colors = {}
         for x_off in range(rel_rect.width):
             for y_off in range(rel_rect.height):
                 # heuristic: assume pixels outside the image are all black
                 if rel_rect.x + x_off < 0 or rel_rect.x + x_off >= self.image.get_width() \
                     or rel_rect.y + y_off < 0 or rel_rect.y + y_off >= self.image.get_height():
-                    return True
+                    color = (0, 0, 0)
+                else:
+                    color = self.image.get_at((rel_rect.x + x_off, rel_rect.y + y_off))
 
-                color = self.image.get_at((rel_rect.x + x_off, rel_rect.y + y_off))
-                if color[0] == 0 and color[1] == 0 and color[2] == 0:
-                    return True
-        return False
+                # force removal of alpha channel
+                color = (color[0], color[1], color[2])
+
+                if color in colors:
+                    return color
+
+                seen_colors[color] = 1
+
+        return None
 
     def collides(self, rect):
         """Checks for collisions between the given sprite and the fixed scene."""
         rel_rect = rect.move(-left_border, -top_border)
-        return self.region_contains_black_pixel(rel_rect)
+        return self._check_for_colors_in_region(rel_rect, [COLOR_WALL]) is not None
+
+    def should_die(self, rect):
+        rel_rect = rect.move(-left_border, -top_border)
+        return self._check_for_colors_in_region(rel_rect, [COLOR_KILL]) is not None
+
 
     def apply_horizontal_move(self, rect, offset):
         new_rect = rect.move(offset, 0)
@@ -240,6 +258,13 @@ while carryOn:
 
     if player_sprite is not None:
         player_sprite.update(direction, jump)
+
+    # check for death
+    # TODO do this inside the update, as here we risk skipping some
+    # intermediate frames
+    if player_sprite is not None and physics.should_die(player_sprite.rect):
+        # TODO kill animation
+        player_sprite = None
 
     # --- Drawing code should go here
     # First, clear the screen to white. 
