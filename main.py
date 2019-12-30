@@ -63,6 +63,11 @@ class WorldPhysics:
     def region_contains_black_pixel(self, rel_rect):
         for x_off in range(rel_rect.width):
             for y_off in range(rel_rect.height):
+                # heuristic: assume pixels outside the image are all black
+                if rel_rect.x + x_off < 0 or rel_rect.x + x_off >= self.image.get_width() \
+                    or rel_rect.y + y_off < 0 or rel_rect.y + y_off >= self.image.get_height():
+                    return True
+
                 color = self.image.get_at((rel_rect.x + x_off, rel_rect.y + y_off))
                 if color[0] == 0 and color[1] == 0 and color[2] == 0:
                     return True
