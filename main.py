@@ -66,15 +66,25 @@ class WorldPhysics:
 		rel_rect = rect.move(-left_border, -top_border)
 		return self.region_contains_black_pixel(rel_rect)
 
-	def offset_unless_blocked(self, rect, offset):
-		new_rect = rect.move(offset[0], offset[1])
+	def apply_horizontal_move(self, rect, offset):
+		new_rect = rect.move(offset, 0)
+		if not self.collides(new_rect):
+			return new_rect
+
+		# we can go up "shallow" slopes, i.e. max one-pixel steps
+		new_rect = new_rect.move(0, -1)
+		if not self.collides(new_rect):
+			return new_rect
+
+		# nope, no movement possible
+		return rect
+
+	def apply_fall(self, rect):
+		new_rect = rect.move(0, 1)
 		if not self.collides(new_rect):
 			return new_rect
 		else:
 			return rect
-
-	def apply_fall(self, rect):
-		return self.offset_unless_blocked(rect, (0, 1))
 
 physics = WorldPhysics(behaviour_image)
 
@@ -104,9 +114,9 @@ class PlayerSprite(pygame.sprite.Sprite):
 		
 		# 1. move left or right if needed
 		if direction == 'left':
-			new_rect = self.physics.offset_unless_blocked(new_rect, (-1, 0))
+			new_rect = self.physics.apply_horizontal_move(new_rect, -1)
 		elif direction == 'right':
-			new_rect = self.physics.offset_unless_blocked(new_rect, (1, 0))
+			new_rect = self.physics.apply_horizontal_move(new_rect, 1)
 
 		new_rect = self.physics.apply_fall(new_rect)
 
