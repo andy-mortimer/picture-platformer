@@ -1,6 +1,8 @@
 import pygame
 import math
 
+import sprite_loader
+
 pygame.init()
 
 top_border = 75
@@ -38,6 +40,9 @@ if behaviour_image.get_width() + left_border + right_border > MAX_WINDOW_WIDTH \
 
 level_width = behaviour_image.get_width()
 level_height = behaviour_image.get_height()
+
+player_sprite_normal_name = 'player-sprite-normal.jpg'
+player_sprite_normal = sprite_loader.sprite_from_image(f'assets/{player_sprite_normal_name}', (32, 32))
 
 # Open a new window
 size = (level_width + left_border + right_border,
@@ -109,12 +114,7 @@ class PlayerSprite(pygame.sprite.Sprite):
         width = 32
         height = 32
         WHITE=(255, 255, 255)
-        self.image = pygame.Surface([width, height])
-        self.image.fill(WHITE)
-        self.image.set_colorkey(WHITE)
-
-        # Draw the car (a rectangle!)
-        pygame.draw.rect(self.image, (255, 120, 120), [0, 0, width, height])
+        self.image = player_sprite_normal
 
         self.rect = self.image.get_rect()
         self.rect.x = starting_pos[0] - (width/2) + left_border
@@ -225,6 +225,8 @@ while carryOn:
         direction = 'right'
     if keys[pygame.K_SPACE]:
         jump = True
+    if keys[pygame.K_ESCAPE]:
+        carryOn = False
 
     if player_sprite is not None:
         player_sprite.update(direction, jump)
