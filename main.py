@@ -1,7 +1,12 @@
 import pygame
 import math
+import argparse
 
 import sprite_loader
+
+argparse = argparse.ArgumentParser()
+argparse.add_argument('--level', type=str, default='assets/level.jpg')
+args = argparse.parse_args()
 
 pygame.init()
 
@@ -17,9 +22,9 @@ JUMP_HEIGHT = 80
 
 # load the level image into a surface
 # TODO there should be two: one for the display, one for the physics
-level_image_name = 'level.jpg'
-level_image = pygame.image.load(f'assets/{level_image_name}')
-behaviour_image = pygame.image.load(f'assets/{level_image_name}')
+level_image_name = args.level
+level_image = pygame.image.load(f'{level_image_name}')
+behaviour_image = pygame.image.load(f'{level_image_name}')
 
 def scale_down_by(surface, factor):
     new_surface = pygame.transform.scale(surface, 
