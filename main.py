@@ -66,6 +66,16 @@ class WorldPhysics:
 		rel_rect = rect.move(-left_border, -top_border)
 		return self.region_contains_black_pixel(rel_rect)
 
+	def offset_unless_blocked(self, rect, offset):
+		new_rect = rect.move(offset[0], offset[1])
+		if not self.collides(new_rect):
+			return new_rect
+		else:
+			return rect
+
+	def apply_fall(self, rect):
+		return self.offset_unless_blocked(rect, (0, 1))
+
 physics = WorldPhysics(behaviour_image)
 
 
@@ -89,13 +99,18 @@ class PlayerSprite(pygame.sprite.Sprite):
 		self.rect.x = starting_pos[0] - (width/2) + left_border
 		self.rect.y = starting_pos[1] - (height/2) + top_border
 
-	def update(self):
-		possible_new_rect = self.rect.move(0, 1)
-		if self.physics.collides(possible_new_rect):
-			# don't update
-			pass
-		else:
-			self.rect = possible_new_rect
+	def update(self, direction):
+		new_rect = self.rect.copy()
+		
+		# 1. move left or right if needed
+		if direction == 'left':
+			new_rect = self.physics.offset_unless_blocked(new_rect, (-1, 0))
+		elif direction == 'right':
+			new_rect = self.physics.offset_unless_blocked(new_rect, (1, 0))
+
+		new_rect = self.physics.apply_fall(new_rect)
+
+		self.rect = new_rect
 
 # The loop will carry on until the user exit the game (e.g. clicks the close button).
 carryOn = True
@@ -119,11 +134,19 @@ while carryOn:
         elif event.type == pygame.MOUSEBUTTONDOWN:
         	if mouse_in_level:
         		new_player_sprite = PlayerSprite(mouse_pos_rel, physics)
+        		player_sprites.empty()
         		player_sprites.add(new_player_sprite)
  
     # --- Game logic should go here
 
-    player_sprites.update()
+    keys = pygame.key.get_pressed()  #checking pressed keys
+    direction = None
+    if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+        direction = 'left'
+    if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+        direction = 'right'
+
+    player_sprites.update(direction)
 
     # --- Drawing code should go here
     # First, clear the screen to white. 
