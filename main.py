@@ -15,28 +15,28 @@ level_image = pygame.image.load(f'assets/{level_image_name}')
 behaviour_image = pygame.image.load(f'assets/{level_image_name}')
 
 def scale_down_by(surface, factor):
-	new_surface = pygame.transform.scale(surface, 
-		(int(surface.get_width()/factor), int(surface.get_height()/factor)))
-	return new_surface
+    new_surface = pygame.transform.scale(surface, 
+        (int(surface.get_width()/factor), int(surface.get_height()/factor)))
+    return new_surface
 
 MAX_WINDOW_WIDTH=1200
 MAX_WINDOW_HEIGHT=768
 if behaviour_image.get_width() + left_border + right_border > MAX_WINDOW_WIDTH \
-		or behaviour_image.get_height + top_border + bottom_border > MAX_WINDOW_HEIGHT:
-	# scale by an integer (so no sampling oddities) to bring it under the max size
-	x_scale = math.ceil(behaviour_image.get_width() / (MAX_WINDOW_WIDTH - left_border - right_border))
-	y_scale = math.ceil(behaviour_image.get_height() / (MAX_WINDOW_HEIGHT - top_border - bottom_border))
-	scale = max(x_scale, y_scale)
-	print(f'scaling down by factor of {scale}')
-	level_image = scale_down_by(level_image, scale)
-	behaviour_image = scale_down_by(behaviour_image, scale)
+        or behaviour_image.get_height + top_border + bottom_border > MAX_WINDOW_HEIGHT:
+    # scale by an integer (so no sampling oddities) to bring it under the max size
+    x_scale = math.ceil(behaviour_image.get_width() / (MAX_WINDOW_WIDTH - left_border - right_border))
+    y_scale = math.ceil(behaviour_image.get_height() / (MAX_WINDOW_HEIGHT - top_border - bottom_border))
+    scale = max(x_scale, y_scale)
+    print(f'scaling down by factor of {scale}')
+    level_image = scale_down_by(level_image, scale)
+    behaviour_image = scale_down_by(behaviour_image, scale)
 
 level_width = behaviour_image.get_width()
 level_height = behaviour_image.get_height()
 
 # Open a new window
 size = (level_width + left_border + right_border,
-	level_height + top_border + bottom_border)
+    level_height + top_border + bottom_border)
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption(f"Picture Platformer: {level_image_name}")
 
@@ -46,81 +46,140 @@ FOOTER_TEXT_COLOR=(255, 245, 245)
 footer_font = pygame.font.Font('freesansbold.ttf', 12)
 
 
-player_sprites = pygame.sprite.Group()
-
-
 class WorldPhysics:
-	def __init__(self, behaviour_image):
-		self.image = behaviour_image
+    def __init__(self, behaviour_image):
+        self.image = behaviour_image
 
-	def region_contains_black_pixel(self, rel_rect):
-		for x_off in range(rel_rect.width):
-			for y_off in range(rel_rect.height):
-				color = self.image.get_at((rel_rect.x + x_off, rel_rect.y + y_off))
-				if color[0] == 0 and color[1] == 0 and color[2] == 0:
-					return True
-		return False
+    def region_contains_black_pixel(self, rel_rect):
+        for x_off in range(rel_rect.width):
+            for y_off in range(rel_rect.height):
+                color = self.image.get_at((rel_rect.x + x_off, rel_rect.y + y_off))
+                if color[0] == 0 and color[1] == 0 and color[2] == 0:
+                    return True
+        return False
 
-	def collides(self, rect):
-		"""Checks for collisions between the given sprite and the fixed scene."""
-		rel_rect = rect.move(-left_border, -top_border)
-		return self.region_contains_black_pixel(rel_rect)
+    def collides(self, rect):
+        """Checks for collisions between the given sprite and the fixed scene."""
+        rel_rect = rect.move(-left_border, -top_border)
+        return self.region_contains_black_pixel(rel_rect)
 
-	def apply_horizontal_move(self, rect, offset):
-		new_rect = rect.move(offset, 0)
-		if not self.collides(new_rect):
-			return new_rect
+    def apply_horizontal_move(self, rect, offset):
+        new_rect = rect.move(offset, 0)
+        if not self.collides(new_rect):
+            return new_rect
 
-		# we can go up "shallow" slopes, i.e. max one-pixel steps
-		new_rect = new_rect.move(0, -1)
-		if not self.collides(new_rect):
-			return new_rect
+        # we can go up "shallow" slopes, i.e. max one-pixel steps
+        new_rect = new_rect.move(0, -1)
+        if not self.collides(new_rect):
+            return new_rect
 
-		# nope, no movement possible
-		return rect
+        # nope, no movement possible
+        return rect
 
-	def apply_fall(self, rect):
-		new_rect = rect.move(0, 1)
-		if not self.collides(new_rect):
-			return new_rect
-		else:
-			return rect
+    def apply_fall(self, rect):
+        new_rect = rect.move(0, 1)
+        if not self.collides(new_rect):
+            return new_rect
+        else:
+            return rect
+
+    def apply_jump_1px(self, rect):
+        new_rect = rect.move(0, -1)
+        if not self.collides(new_rect):
+            return new_rect
+        else:
+            return rect
 
 physics = WorldPhysics(behaviour_image)
 
 
 class PlayerSprite(pygame.sprite.Sprite):
-	def __init__(self, starting_pos, physics):
-		super().__init__()
+    def __init__(self, starting_pos, physics):
+        super().__init__()
 
-		self.physics = physics
+        self.physics = physics
 
-		width = 32
-		height = 32
-		WHITE=(255, 255, 255)
-		self.image = pygame.Surface([width, height])
-		self.image.fill(WHITE)
-		self.image.set_colorkey(WHITE)
+        self.is_jumping = False
 
-		# Draw the car (a rectangle!)
-		pygame.draw.rect(self.image, (255, 120, 120), [0, 0, width, height])
+        width = 32
+        height = 32
+        WHITE=(255, 255, 255)
+        self.image = pygame.Surface([width, height])
+        self.image.fill(WHITE)
+        self.image.set_colorkey(WHITE)
 
-		self.rect = self.image.get_rect()
-		self.rect.x = starting_pos[0] - (width/2) + left_border
-		self.rect.y = starting_pos[1] - (height/2) + top_border
+        # Draw the car (a rectangle!)
+        pygame.draw.rect(self.image, (255, 120, 120), [0, 0, width, height])
 
-	def update(self, direction):
-		new_rect = self.rect.copy()
-		
-		# 1. move left or right if needed
-		if direction == 'left':
-			new_rect = self.physics.apply_horizontal_move(new_rect, -1)
-		elif direction == 'right':
-			new_rect = self.physics.apply_horizontal_move(new_rect, 1)
+        self.rect = self.image.get_rect()
+        self.rect.x = starting_pos[0] - (width/2) + left_border
+        self.rect.y = starting_pos[1] - (height/2) + top_border
 
-		new_rect = self.physics.apply_fall(new_rect)
+    def update(self, direction, jump):
+        new_rect = self.rect.copy()
 
-		self.rect = new_rect
+        if jump and not self.is_jumping:
+            # are we OK to jump? Yes, if we are resting on the ground.
+            # rather than tracking jumping and falling etc, let's just see
+            # whether we would fall later
+            fallen_rect = self.rect.move(0, 1)
+            if self.physics.collides(fallen_rect):
+                # yes, on the ground, we can start the jump
+                self.start_jump(height = 60, frames = 60)
+
+        # 1. apply jump if jumping
+        suppress_fall = False
+        if self.is_jumping:
+            # hacky way to calculate how many frames to move for a junp
+            # TODO do this better
+            jump_by = int(self.jump_height / self.jump_frames)
+            # move up n pixels by moving one pixel n times, so that we get
+            # the collisions right
+            jump_ended = False
+            for n in range(jump_by):
+                jumped_rect = self.physics.apply_jump_1px(new_rect)
+                if jumped_rect == new_rect:
+                    # as soon as we hit the ceiling, stop going up
+                    jump_ended = True
+                    break
+                else:
+                    new_rect = jumped_rect
+                self.jump_height -= 1
+            
+            self.jump_frames -= 1
+            suppress_fall = True
+
+            if jump_ended or self.jump_frames == 0:
+                self.end_jump()
+        
+        # 1. move left or right if needed
+        if direction == 'left':
+            new_rect = self.physics.apply_horizontal_move(new_rect, -1)
+        elif direction == 'right':
+            new_rect = self.physics.apply_horizontal_move(new_rect, 1)
+
+        if not suppress_fall:
+            new_rect = self.physics.apply_fall(new_rect)
+
+        self.rect = new_rect
+
+    def start_jump(self, height, frames):
+        self.is_jumping = True
+        self.jump_frames = frames
+        self.jump_height = height
+
+    def end_jump(self):
+        self.is_jumping = False
+        self.jump_frames = self.jump_height = None
+
+    def debug_text(self):
+        text = f'Player @({self.rect.x}, {self.rect.y})'
+        if self.is_jumping:
+            text += f' JUMP remaining {self.jump_height}px {self.jump_frames} frames'
+        return text
+
+
+player_sprite = None
 
 # The loop will carry on until the user exit the game (e.g. clicks the close button).
 carryOn = True
@@ -134,29 +193,33 @@ while carryOn:
 
     # check whether the mouse is inside the actual level
     mouse_pos_rel = (pygame.mouse.get_pos()[0] - left_border,
-    	pygame.mouse.get_pos()[1] - top_border)
+        pygame.mouse.get_pos()[1] - top_border)
     mouse_in_level = (mouse_pos_rel[0] >= 0 and mouse_pos_rel[0] < level_width
-    	and mouse_pos_rel[1] >= 0 and mouse_pos_rel[1] < level_height)
+        and mouse_pos_rel[1] >= 0 and mouse_pos_rel[1] < level_height)
 
     for event in pygame.event.get(): # User did something
         if event.type == pygame.QUIT: # If user clicked close
               carryOn = False # Flag that we are done so we exit this loop
         elif event.type == pygame.MOUSEBUTTONDOWN:
-        	if mouse_in_level:
-        		new_player_sprite = PlayerSprite(mouse_pos_rel, physics)
-        		player_sprites.empty()
-        		player_sprites.add(new_player_sprite)
+            if mouse_in_level:
+                if player_sprite is not None:
+                    player_sprite.kill()
+                player_sprite = PlayerSprite(mouse_pos_rel, physics)
  
     # --- Game logic should go here
 
     keys = pygame.key.get_pressed()  #checking pressed keys
     direction = None
+    jump = False
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         direction = 'left'
     if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
         direction = 'right'
+    if keys[pygame.K_SPACE]:
+        jump = True
 
-    player_sprites.update(direction)
+    if player_sprite is not None:
+        player_sprite.update(direction, jump)
 
     # --- Drawing code should go here
     # First, clear the screen to white. 
@@ -165,12 +228,14 @@ while carryOn:
     # game window
     screen.blit(level_image, (left_border, top_border))
 
-    player_sprites.draw(screen)
+    if player_sprite is not None:
+        screen.blit(player_sprite.image, player_sprite.rect)
 
     # footer
-    if mouse_in_level:
-	    mouse_pos_text = footer_font.render(f'Mouse: {mouse_pos_rel}', True, FOOTER_TEXT_COLOR, BORDER_COLOR)
-	    screen.blit(mouse_pos_text, (left_border, top_border + behaviour_image.get_height()))
+    if player_sprite is not None:
+        footer_text = player_sprite.debug_text()
+        footer_surface = footer_font.render(footer_text, True, FOOTER_TEXT_COLOR, BORDER_COLOR)
+        screen.blit(footer_surface, (left_border, top_border + behaviour_image.get_height()))
 
     # --- Go ahead and update the screen with what we've drawn.
     pygame.display.flip()
