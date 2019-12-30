@@ -8,6 +8,11 @@ bottom_border = 25
 left_border = right_border = 10
 level_offset = (left_border, top_border)
 
+WALK_SPEED = 3
+FALL_SPEED = 4
+JUMP_SPEED = 4
+JUMP_HEIGHT = 80
+
 # load the level image into a surface
 # TODO there should be two: one for the display, one for the physics
 level_image_name = 'level.jpg'
@@ -125,7 +130,7 @@ class PlayerSprite(pygame.sprite.Sprite):
             fallen_rect = self.rect.move(0, 1)
             if self.physics.collides(fallen_rect):
                 # yes, on the ground, we can start the jump
-                self.start_jump(height = 60, frames = 60)
+                self.start_jump(height = JUMP_HEIGHT, frames = JUMP_HEIGHT / JUMP_SPEED)
 
         # 1. apply jump if jumping
         suppress_fall = False
@@ -154,12 +159,15 @@ class PlayerSprite(pygame.sprite.Sprite):
         
         # 1. move left or right if needed
         if direction == 'left':
-            new_rect = self.physics.apply_horizontal_move(new_rect, -1)
+            for n in range(WALK_SPEED):
+                new_rect = self.physics.apply_horizontal_move(new_rect, -1)
         elif direction == 'right':
-            new_rect = self.physics.apply_horizontal_move(new_rect, 1)
+            for n in range(WALK_SPEED):
+                new_rect = self.physics.apply_horizontal_move(new_rect, 1)
 
         if not suppress_fall:
-            new_rect = self.physics.apply_fall(new_rect)
+            for n in range(FALL_SPEED):
+                new_rect = self.physics.apply_fall(new_rect)
 
         self.rect = new_rect
 
