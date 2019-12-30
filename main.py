@@ -5,7 +5,7 @@ import argparse
 import sprite_loader
 
 argparse = argparse.ArgumentParser()
-argparse.add_argument('--level', type=str, default='assets/level.jpg')
+argparse.add_argument('--level', type=str, default='assets/level1.png')
 args = argparse.parse_args()
 
 pygame.init()
