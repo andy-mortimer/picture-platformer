@@ -1,14 +1,25 @@
 import pygame
 import math
 import argparse
+import sys
 
 import sprite_loader
+import menu
 
 argparse = argparse.ArgumentParser()
-argparse.add_argument('--level', type=str, default='assets/level1.png')
+argparse.add_argument('--level', type=str)
 args = argparse.parse_args()
 
 pygame.init()
+
+selected_level = args.level
+if selected_level is None:
+    selected_level = menu.choose_level()
+
+    # if the user closes the level chooser window, just exit
+    if selected_level is None:
+        pygame.quit()
+        sys.exit(0)
 
 top_border = 75
 bottom_border = 25
@@ -25,7 +36,7 @@ COLOR_KILL = (255, 0, 0)
 
 # load the level image into a surface
 # TODO there should be two: one for the display, one for the physics
-level_image_name = args.level
+level_image_name = selected_level
 level_image = pygame.image.load(f'{level_image_name}')
 behaviour_image = pygame.image.load(f'{level_image_name}')
 
