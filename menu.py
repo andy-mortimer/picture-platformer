@@ -47,3 +47,8 @@ def choose_level():
 	# nothing was clicked and the user closed the window. Return None to
 	# indicate this.
 	return None
+
+if __name__ == "__main__":
+	choose_level()
+	pygame.quit()
+	
